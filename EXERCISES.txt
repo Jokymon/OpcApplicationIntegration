@@ -1,0 +1,208 @@
+Exercises for integrating an OPC-UA server in a Qt-Application
+==============================================================
+
+The project skeleton is prepared with all include and linker parameter
+correctly setup. You should be able to straight out compile after including any
+of the known open62541 headers.
+
+If you are struggling at any point it is always recommended to check the official
+documentation of the open62541 project: https://open62541.org/doc/0.3/
+
+EXERCISE 1
+----------
+
+*Get the message pump working.*
+
+In the documentation you will find a simple example to setup an OPC-UA server
+under "Building a Simple Server" (https://open62541.org/doc/0.3/tutorial_server_firststeps.html)
+
+However that example has one small problem - it want's to take over the main
+loop after UA_Server_run. But we are in a Qt application and have our own event
+loop.
+
+Hints:
+^^^^^^
+
+Search for the function UA_Server_run_startup() and UA_Server_run_iterate() in
+the documentation and remember what QTimers can do.
+
+
+EXERCISE 2
+----------
+
+*Publish the checkbox status as variable.*
+
+Read the chapter "Adding Variables to a Server" from the "Tutorials" section.
+(https://open62541.org/doc/tutorial_server_variable.html)
+
+Create a new scalar variable of type 'bool' on your OPC-UA server. Then add an
+event handler for the stateChanged() event of the checkbox that is placed on
+the UI. The handler should update the value of the new variable every time the
+user clicks on the check box.
+Check with one of the OPC-UA clients, that your variable is correctly updated.
+
+Hints:
+^^^^^^
+
+- You can easily add the necessary event handler (Slot in Qt-Lingo) by
+  right-clicking on the checkbox in the Designer, choosing "Go To Slot ..." and
+  selecting stateChanged(). This will create the necessary method in the
+  MainWindow class.
+- The checkbox is tri-state which is why the paramter is an 'int' instead of a
+  bool. You can compare with 'Qt::Checked' and 'Qt::Unchecked'.
+
+EXERCISE 3
+----------
+
+*Accept value changes*
+
+Read the chapter "Connecting a Variable with a Physical Process" from the
+"Tutorials" section.  (https://open62541.org/doc/tutorial_server_datasource.html)
+
+Create a new scalar variable of type 'int32' on your OPC-UA Server. Now try
+using the approach described in "Variable Value Callback" and add the necessary
+static functions. When defining the the scalar variable
+('UA_Server_addVariableNode()'), pass the 'MainWindow' via 'this'-pointer to
+the parameter 'nodeContext' so that you have access to the 'MainWindow' in your
+static function. In your static function update the value of the progress bar.
+
+Hints:
+^^^^^^
+
+- You will need a public method in the MainWindow that allows you to update the
+  progress bar value.
+- Even though you will only use the 'onWrite'-Callback you still also have to
+  define an (empty) 'onRead'-callback or your server will crash as soon as a
+  client tries to read the node value.
+- Use a reinterpret_cast<>() in your write-callback to get your MainWindow
+- You can use 'UA_Variant_hasScalarType() on '&data->value' to check that the
+  data parameter really contains a value of your expected type.
+- You have to reinterpret_cast<>() 'data->value.data' to an 'int32_t' to get
+  your value in the required format. (See also the 'handler_events()' function
+  in 'tutorial_client_events.c' source of the open62541 checkout.
+
+EXERCISE 4
+----------
+
+*Create a new object.*
+
+Objects are a way to structure your variables, properties, methods etc. very
+similar to how you use objects in C++, C#, Java etc.
+
+For the beginning you can focus on simply creating an empty object. If you
+want you can then still add any desired variables on your own as an exercise.
+
+Once you have add the new object, you can continue on EXERCISE 4b or EXERCISE 5
+as the next steps.
+
+Hints:
+^^^^^^
+
+- To only create an object you can focus on the first section in the code of
+  the 'manuallyDefinePump()' function in the online tutorial. The following
+  sections are only relevant when you also want to add variables.
+
+EXERCISE 4b
+-----------
+
+*Instantiate object types.*
+
+Instead of manually creating the object and adding all variables yourself, you
+can let the OPC-UA server do that for you. For this to work you first must define
+a corresponding object type. It is clear that this approach is useful once you
+need to instantiate multiple objects of the same type or when you can use a type
+defined by a NodeSet as described in EXERCISE beta.
+
+This exercise has no sample solution yet.
+
+EXERCISE 5
+----------
+
+*Provide a method to call.*
+
+Methods allow an OPC-UA client to call operations on the server, very similar
+to how methods in OO-languages work.
+
+You can either try to reproduce the example from the tutorial "Adding Methods
+to Objects" or you can add the following method:
+
+	bool setBlinking(bool blinkingActive);
+
+The method should start the blinkingTimer if blinkingActive is true and should
+stop it again when it is false.
+
+Additionally return true, when the operation was successful and false if the
+"Prevent blinking" option is activated.
+
+Hints:
+^^^^^^
+- Similarly to EXERCISE 3 you will need to define a static callback function and
+  pass a node context to get back to your MainWindow
+- To add the method to the object that you created in EXERCISE 4, you need to store
+  the automatically generated nodeid of the object somewhere. You will get that id
+  by passing a UA_NodeId pointer as the last parameter to UA_Server_addObjectNode().
+
+
+Here be dragons
+===============
+
+When you get past this point, be aware that there are no more example
+solutions. From here on your are all on your own.
+
+EXERCISE alpha
+--------------
+
+*Use the Nodeset Compiler.*
+
+Instead of manually writing all the code to generate the nodes of your own
+variables, use the XML Nodeset compiler. The compiler will generate the
+according C-Code that instantiates all your variables and you simply have to
+call the corresponding C-function.
+
+Hints:
+^^^^^^
+
+Check the chapter XML Nodeset Compiler (https://open62541.org/doc/0.3/nodeset_compiler_html)
+for the documentation on how to use compiler.
+
+Don't start by trying to integrate the node-set compiler in your build-process.
+Start by manually running the compiler and adding the generated source and
+header files to the Qt project.
+
+EXERCISE beta
+-------------
+
+*Provide arrays of data.*
+
+Find out how you can provide an entire set of values in single variable using a
+different variable rank.
+
+EXERCISE gamma
+--------------
+
+*Protect node access.*
+
+Prevent anonymous login, prevent certain types of operations for certain users,
+etc.
+
+Hints:
+^^^^^^
+
+Study the 'server_access_control.c' source in the 'examples/access_control'
+folder of the open6254 checkout.
+
+EXERCISE delta
+--------------
+
+*Emit Events.*
+
+OPC-UA allows you to emit events on object nodes which can be useful for alarming,
+logging or even simple debugging scenarios.
+
+Hints:
+^^^^^^
+
+It is possible to generate events using the version 0.3 of the open62541 stack. To
+actually do it with managable effort however it is recommended to switch to the
+current development branch. You will find an corresponding tutorial on the documentation
+of the current version here: https://open62541.org/doc/current/tutorial_server_events.html
