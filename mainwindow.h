@@ -4,6 +4,9 @@
 #include <QMainWindow>
 #include <QTimer>
 
+struct UA_ServerConfig;
+struct UA_Server;
+
 namespace Ui {
 class MainWindow;
 }
@@ -18,10 +21,15 @@ public:
 
 private slots:
     void blink();
+    void opcMessagePump();
 
 private:
     QTimer blinkTimer;
+    QTimer messagePumpTimer;
     Ui::MainWindow *ui;
+
+    UA_ServerConfig *config;
+    UA_Server *server;
 };
 
 #endif // MAINWINDOW_H
