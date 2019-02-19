@@ -23,6 +23,12 @@ private slots:
     void blink();
     void opcMessagePump();
 
+    void on_statusCheckbox_stateChanged(int arg1);
+
+private:
+    void addBoolVariable();
+    void setBoolVariableValue(bool value);
+
 private:
     QTimer blinkTimer;
     QTimer messagePumpTimer;
