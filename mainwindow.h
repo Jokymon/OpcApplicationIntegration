@@ -19,6 +19,8 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void updateProgressBarValue(int value);
+
 private slots:
     void blink();
     void opcMessagePump();
@@ -28,6 +30,8 @@ private slots:
 private:
     void addBoolVariable();
     void setBoolVariableValue(bool value);
+
+    void addCallbackVariable();
 
 private:
     QTimer blinkTimer;
