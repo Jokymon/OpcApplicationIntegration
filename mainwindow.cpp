@@ -43,6 +43,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     addBoolVariable();
     addCallbackVariable();
+    addObject();
 
     UA_Server_run_startup(server);
 
@@ -125,6 +126,18 @@ void MainWindow::addCallbackVariable()
     callback.onWrite = afterProgressVariableWrite;
     callback.onRead = beforeProgressVariableRead;
     UA_Server_setVariableNode_valueCallback(server, theVariableNodeId, callback);
+}
+
+void MainWindow::addObject()
+{
+    UA_ObjectAttributes attr = UA_ObjectAttributes_default;
+    attr.displayName = UA_LOCALIZEDTEXT("en-US", "The Object");
+    UA_Server_addObjectNode(server, UA_NODEID_NULL,
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
+                            UA_QUALIFIEDNAME(1, "The Object"),
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
+                            attr, nullptr, nullptr);
 }
 
 void MainWindow::on_statusCheckbox_stateChanged(int arg1)

@@ -33,6 +33,8 @@ private:
 
     void addCallbackVariable();
 
+    void addObject();
+
 private:
     QTimer blinkTimer;
     QTimer messagePumpTimer;
