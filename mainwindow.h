@@ -20,6 +20,7 @@ public:
     ~MainWindow();
 
     void updateProgressBarValue(int value);
+    bool setBlinking(bool active);
 
 private slots:
     void blink();

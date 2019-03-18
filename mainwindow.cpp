@@ -20,6 +20,21 @@ static void afterProgressVariableWrite(UA_Server *server,
     }
 }
 
+static UA_StatusCode setBlinkingImplementation(UA_Server *server,
+                                               const UA_NodeId *sessionId, void *sessionHandle,
+                                               const UA_NodeId *methodId, void *methodContext,
+                                               const UA_NodeId *objectId, void *objectContext,
+                                               size_t inputSize, const UA_Variant *input,
+                                               size_t outputSize, UA_Variant *output)
+{
+    UA_Boolean *blinkingStatus = (UA_Boolean*)input->data;
+    auto* mainWindow = reinterpret_cast<MainWindow*>(methodContext);
+    auto success = mainWindow->setBlinking(*blinkingStatus);
+    UA_Boolean uaSuccess = success;
+    UA_Variant_setScalarCopy(output, &uaSuccess, &UA_TYPES[UA_TYPES_BOOLEAN]);
+    return UA_STATUSCODE_GOOD;
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -67,6 +82,23 @@ void MainWindow::blink()
 void MainWindow::updateProgressBarValue(int value)
 {
     ui->variableProgress->setValue(value);
+}
+
+bool MainWindow::setBlinking(bool active)
+{
+    if (ui->uiPreventBlinking->isChecked()) {
+        return false;
+    }
+    else {
+        if (active) {
+            blinkTimer.start();
+        }
+        else {
+            blinkTimer.stop();
+            ui->led->setChecked(false);
+        }
+        return true;
+    }
 }
 
 void MainWindow::opcMessagePump()
@@ -130,6 +162,7 @@ void MainWindow::addCallbackVariable()
 
 void MainWindow::addObject()
 {
+    UA_NodeId objectNodeId;
     UA_ObjectAttributes attr = UA_ObjectAttributes_default;
     attr.displayName = UA_LOCALIZEDTEXT("en-US", "The Object");
     UA_Server_addObjectNode(server, UA_NODEID_NULL,
@@ -137,7 +170,33 @@ void MainWindow::addObject()
                             UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES),
                             UA_QUALIFIEDNAME(1, "The Object"),
                             UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE),
-                            attr, nullptr, nullptr);
+                            attr, nullptr, &objectNodeId);
+
+    UA_Argument inputArgument;
+    UA_Argument_init(&inputArgument);
+    inputArgument.description = UA_LOCALIZEDTEXT("en-US", "New blinking status");
+    inputArgument.name = UA_STRING("blinkingActive");
+    inputArgument.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    inputArgument.valueRank = UA_VALUERANK_SCALAR;
+
+    UA_Argument outputArgument;
+    UA_Argument_init(&outputArgument);
+    outputArgument.description = UA_LOCALIZEDTEXT("en-US", "return value");
+    outputArgument.name = UA_STRING("success");
+    outputArgument.dataType = UA_TYPES[UA_TYPES_BOOLEAN].typeId;
+    outputArgument.valueRank = UA_VALUERANK_SCALAR;
+
+    UA_MethodAttributes setBlinkingAttr = UA_MethodAttributes_default;
+    setBlinkingAttr.description = UA_LOCALIZEDTEXT("en-US", "Activate/deactivate the blinker");
+    setBlinkingAttr.displayName = UA_LOCALIZEDTEXT("en-US", "setBlinking");
+    setBlinkingAttr.executable = true;
+    setBlinkingAttr.userExecutable = true;
+    UA_Server_addMethodNode(server, UA_NODEID_NULL,
+                            objectNodeId,
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_HASORDEREDCOMPONENT),
+                            UA_QUALIFIEDNAME(1, "setBlinking"),
+                            setBlinkingAttr, &setBlinkingImplementation,
+                            1, &inputArgument, 1, &outputArgument, this, nullptr);
 }
 
 void MainWindow::on_statusCheckbox_stateChanged(int arg1)
